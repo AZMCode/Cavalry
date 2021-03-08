@@ -1,0 +1,5 @@
+[
+    { "directory": "/home/adriano/Documents/Personal/codeProjects/Cavalry",
+      "command": "/usr/bin/clang -Iinclude/ -o bin/cavalry src/main.c src/mod.c src/utils.c",
+      "file": "file.cc" }
+]
