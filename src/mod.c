@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <wchar.h>
 
 #include <utils.h>
 #include <mod.h>
@@ -34,22 +33,23 @@ struct Move** possibleMoves(struct GameState* currentState){
     bool turn = currentState->turn;
     struct Coordinate** playableCoords = calloc(tableSize+1,sizeof(struct Coordinate*));
     
-    if(currentState->activePiece){
+    if(currentState->activePiece != NULL){
         playableCoords[ptrArrLen((void**)(playableCoords))] = Coordinate_init_copy(currentState->activePiece);
     } else {
         for(int i = 0; i<currentState->board->width; i++){
             for(int j = 0; j<currentState->board->height;j++){
                 enum Cell currCellType = currentState->board->cells[i*currentState->board->height + j];
+                int nextIndex = ptrArrLen((void**)(playableCoords));
                 if((!turn) && (currCellType == 1 || currCellType == 2)){
-                    playableCoords[ptrArrLen((void**)(playableCoords))] = Coordinate_init_construct(i,j);
+                    playableCoords[nextIndex] = Coordinate_init_construct(i,j);
                 } else if(turn && (currCellType == 3 || currCellType == 4)){
-                    playableCoords[ptrArrLen((void**)(playableCoords))] = Coordinate_init_construct(i,j);
+                    playableCoords[nextIndex] = Coordinate_init_construct(i,j);
                 }
             }
         }
             
     }
-    struct Move** legalMoves = calloc(9*tableSize,sizeof(struct Move*));
+    struct Move** legalMoves = calloc(9*ptrArrLen((void**)playableCoords),sizeof(struct Move*));
     for(int i = 0; playableCoords[i] != NULL; i++){
         struct Coordinate* coord= Coordinate_init_copy(playableCoords[i]);
         enum Cell cellType = currentState->board->cells[coord->x * currentState->board->height + coord->y];
@@ -67,11 +67,13 @@ struct Move** possibleMoves(struct GameState* currentState){
                 }
             }
         }
-        struct Move** legalMoves = calloc(9,sizeof(struct Move*));
         for(int j = 0; j< ptrArrLen((void**)(legalMask));j++){
-            legalMoves[j] = coordToMove(legalMask[j]);
+            legalMoves[j] = Move_init_construct(coord,legalMask[j]);
         }
-        free(currMask);
+        
+        //Destroying the Coordinates from rebasedMask and legalMask
+        for(int j = 0; j<ptrArrLen((void**)rebasedMask); j++){Coordinate_destroy(rebasedMask[j]);}
+        for(int j = 0; j<ptrArrLen((void**)legalMask); j++){Coordinate_destroy(legalMask[j]);}
         free(rebasedMask);
         free(legalMask);
         Coordinate_destroy(coord);

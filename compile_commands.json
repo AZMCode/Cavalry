@@ -1,5 +1,41 @@
 [
-    { "directory": "/home/adriano/Documents/Personal/codeProjects/Cavalry",
-      "command": "/usr/bin/clang -Iinclude/ -o bin/cavalry src/main.c src/mod.c src/utils.c",
-      "file": "file.cc" }
+    {
+        "arguments": [
+            "clang",
+            "-c",
+            "-Iinclude/",
+            "-g",
+            "-o",
+            "bin/cavalry",
+            "src/main.c"
+        ],
+        "directory": "/home/adriano/Documents/Personal/codeProjects/Cavalry",
+        "file": "src/main.c"
+    },
+    {
+        "arguments": [
+            "clang",
+            "-c",
+            "-Iinclude/",
+            "-g",
+            "-o",
+            "bin/cavalry",
+            "src/utils.c"
+        ],
+        "directory": "/home/adriano/Documents/Personal/codeProjects/Cavalry",
+        "file": "src/utils.c"
+    },
+    {
+        "arguments": [
+            "clang",
+            "-c",
+            "-Iinclude/",
+            "-g",
+            "-o",
+            "bin/cavalry",
+            "src/mod.c"
+        ],
+        "directory": "/home/adriano/Documents/Personal/codeProjects/Cavalry",
+        "file": "src/mod.c"
+    }
 ]

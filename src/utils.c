@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <wchar.h>
 
 #include <utils.h>
 
@@ -19,7 +18,7 @@ struct Board* Board_init_copy(struct Board* input){
     newBoard->height = input->height;
     unsigned int tableSize = input->width*input->height;
     newBoard->cells = calloc(tableSize,sizeof(enum Cell));
-    memcpy(newBoard->cells,input,tableSize*sizeof(enum Cell));
+    memcpy(newBoard->cells,input->cells,tableSize*sizeof(enum Cell));
     return newBoard;
 }
 struct Board* Board_init_construct(enum Cell* cells, unsigned int width, unsigned int height){
@@ -67,14 +66,22 @@ struct GameState* GameState_init_copy(struct GameState* input){
     struct GameState* newGameState = calloc(1,sizeof(struct GameState));
     newGameState->board = Board_init_copy(input->board);
     newGameState->turn = input->turn;
-    newGameState->activePiece = Coordinate_init_copy(input->activePiece);
+    if(input->activePiece != NULL){
+        newGameState->activePiece = Coordinate_init_copy(input->activePiece);
+    } else {
+        newGameState->activePiece = NULL;
+    }
     return newGameState;
 }
 struct GameState* GameState_init_construct(struct Board* input, bool turn, struct Coordinate* activePiece){
     struct GameState* newGameState = calloc(1,sizeof(struct GameState));
     newGameState->board = Board_init_copy(input);
     newGameState->turn = turn;
-    newGameState->activePiece = Coordinate_init_copy(activePiece);
+    if(activePiece != NULL){
+        newGameState->activePiece = Coordinate_init_copy(activePiece);
+    } else {
+        newGameState->activePiece = NULL;
+    }
     return newGameState;
 }
 int GameState_destroy(struct GameState* input){
@@ -168,42 +175,61 @@ struct Coordinate** deduplicateCoords(struct Coordinate** input,int inputLen){
     return unique;
 }
 
-char* printMove(struct Move* input){
+char* stringifyMove(struct Move* input){
     int stringSize = snprintf(NULL,0,"from:[%d,%d] to:[%d,%d]",input->from->x,input->from->y,input->to->x,input->to->y);
     char* outString = calloc(stringSize+1,sizeof(char));
-    sprintf(outString,"from:[%d,%d] to:[%d,%d]",input->from->x,input->from->y,input->to->x,input->to->y);
+    sprintf(outString,"from:[%d,%d] to:[%d,%d]\n",input->from->x,input->from->y,input->to->x,input->to->y);
     return outString;
 }
 
-wchar_t* stringifyBoard(struct Board* board){
-    wchar_t* output = calloc(((board->width+1) * board->height)+1,sizeof(wchar_t));
+void printMovePtrArr(struct Move** input){
+    for(int i = 0; i<ptrArrLen((void**)input);i++){
+        char* currMove = stringifyMove(input[i]);
+        printf("%d: %s",i,currMove);
+        free(currMove);
+    }
+    return;
+}
+
+char* stringifyBoard(struct Board* board){
+    int maxOutLen = (((board->width+1) * board->height)+1)*4;
+    char* output = calloc(maxOutLen,sizeof(char));
     for(int i=board->height - 1; i>=0; i--){
         for(int j=0; j< board->width; j++){
             enum Cell cell = board->cells[(j*board->height) + i];
             switch(cell){
                 case Empty:
-                    output[wcslen(output)] = L'░';
+                    output[strlen(output)] = '\xE2'; //Empty space char in UTF-8
+                    output[strlen(output)] = '\x96'; 
+                    output[strlen(output)] = '\x91';
                     break;
                 case CrossesKnight:
-                    output[wcslen(output)] = L'×';
+                    output[strlen(output)] = '\xC3'; //Cross char in UTF-8
+                    output[strlen(output)] = '\x97';
                     break;
                 case CrossesKing:
-                    output[wcslen(output)] = L'+';
+                    output[strlen(output)] = '\x2B';
                     break;
                 case CirclesKnight:
-                    output[wcslen(output)] = L'⊗';
+                    output[strlen(output)] = '\xE2';
+                    output[strlen(output)] = '\x8A';
+                    output[strlen(output)] = '\x97';
                     break;
                 case CirclesKing:
-                    output[wcslen(output)] = L'⊕';
+                    output[strlen(output)] = '\xE2';
+                    output[strlen(output)] = '\x8A';
+                    output[strlen(output)] = '\x95';
                     break;
                 case BurntGround:
-                    output[wcslen(output)] = L'█';
+                    output[strlen(output)] = '\xE2';
+                    output[strlen(output)] = '\x96';
+                    output[strlen(output)] = '\x88';
                     break;
                 default:
                     printf("Unknown cell type");
             }
         }
-        output[wcslen(output)] = L'\n';
+        output[strlen(output)] = L'\n';
     }
     return output;
 }

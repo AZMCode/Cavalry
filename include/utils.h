@@ -1,5 +1,4 @@
 #include <stdbool.h>
-#include <wchar.h>
 
 #ifndef UTILS_H
 #define UTILS_H
@@ -62,7 +61,8 @@ struct Coordinate* flipY(struct Coordinate* input);
 struct Move* rebaseMove(struct Coordinate* newBase, struct Move* input);
 bool isMoveBlocked(struct Board* board,struct Move* move);
 struct Coordinate** deduplicateCoords(struct Coordinate** input,int inputLen);
-char* printMove(struct Move* input);
-wchar_t* stringifyBoard(struct Board* board);
+char* stringifyMove(struct Move* input);
+void printMovePtrArr(struct Move** input);
+char* stringifyBoard(struct Board* board);
 int ptrArrLen(void** ptrArr);
 #endif
