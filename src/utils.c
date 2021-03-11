@@ -176,15 +176,31 @@ struct Coordinate** deduplicateCoords(struct Coordinate** input,int inputLen){
 }
 
 char* stringifyMove(struct Move* input){
-    int stringSize = snprintf(NULL,0,"from:[%d,%d] to:[%d,%d]",input->from->x,input->from->y,input->to->x,input->to->y);
+    int stringSize = snprintf(NULL,0,"from:[%d,%d] to:[%d,%d]\n",input->from->x,input->from->y,input->to->x,input->to->y);
     char* outString = calloc(stringSize+1,sizeof(char));
     sprintf(outString,"from:[%d,%d] to:[%d,%d]\n",input->from->x,input->from->y,input->to->x,input->to->y);
+    return outString;
+}
+
+char* stringifyCoord(struct Coordinate* input){
+    int stringSize = snprintf(NULL,0,"[%d,%d]\n",input->x,input->y);
+    char* outString = calloc(stringSize+1,sizeof(char));
+    sprintf(outString,"[%d,%d]\n",input->x,input->y);
     return outString;
 }
 
 void printMovePtrArr(struct Move** input){
     for(int i = 0; i<ptrArrLen((void**)input);i++){
         char* currMove = stringifyMove(input[i]);
+        printf("%d: %s",i,currMove);
+        free(currMove);
+    }
+    return;
+}
+
+void printCoordsPtrArr(struct Coordinate** input){
+    for(int i = 0; i<ptrArrLen((void**)input);i++){
+        char* currMove = stringifyCoord(input[i]);
         printf("%d: %s",i,currMove);
         free(currMove);
     }

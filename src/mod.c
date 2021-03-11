@@ -28,81 +28,96 @@ struct Coordinate kingMaskCoords[] = {
 };
 
 
-struct Move** possibleMoves(struct GameState* currentState){
+struct Coordinate** playablePieces(struct GameState* currentState){
     unsigned int tableSize = currentState->board->width * currentState->board->height;
     bool turn = currentState->turn;
     struct Coordinate** playableCoords = calloc(tableSize+1,sizeof(struct Coordinate*));
-    
+    int width = currentState->board->width;
+    int height = currentState->board->height;
     if(currentState->activePiece != NULL){
-        playableCoords[ptrArrLen((void**)(playableCoords))] = Coordinate_init_copy(currentState->activePiece);
+        playableCoords[ptrArrLen((void**)playableCoords)] = Coordinate_init_copy(currentState->activePiece);
     } else {
-        for(int i = 0; i<currentState->board->width; i++){
-            for(int j = 0; j<currentState->board->height;j++){
-                enum Cell currCellType = currentState->board->cells[i*currentState->board->height + j];
-                int nextIndex = ptrArrLen((void**)(playableCoords));
-                if((!turn) && (currCellType == 1 || currCellType == 2)){
-                    playableCoords[nextIndex] = Coordinate_init_construct(i,j);
-                } else if(turn && (currCellType == 3 || currCellType == 4)){
-                    playableCoords[nextIndex] = Coordinate_init_construct(i,j);
+        for(int i = 0; i<width; i++){
+            for(int j = 0; j<height; j++){
+                enum Cell currCell = currentState->board->cells[i * height + j];
+                if(turn && ((currCell == CirclesKing) || (currCell == CirclesKnight))){
+                    playableCoords[ptrArrLen((void**)playableCoords)] = Coordinate_init_construct(i,j);
+                } else if ((!turn) && ((currCell == CrossesKing) || (currCell == CrossesKnight))){
+                    playableCoords[ptrArrLen((void**)playableCoords)] = Coordinate_init_construct(i,j);
                 }
             }
         }
-            
     }
-    struct Move** legalMoves = calloc(9*ptrArrLen((void**)playableCoords),sizeof(struct Move*));
-    for(int i = 0; playableCoords[i] != NULL; i++){
-        struct Coordinate* coord= Coordinate_init_copy(playableCoords[i]);
-        enum Cell cellType = currentState->board->cells[coord->x * currentState->board->height + coord->y];
-        bool knightLike =  (cellType%2 == 1) != (currentState->activePiece != NULL);
-        struct Coordinate* currMask = knightLike ? knightMaskCoords : kingMaskCoords;
-        struct Coordinate** rebasedMask = calloc(9,sizeof(struct Coordinate*));
-        struct Coordinate** legalMask = calloc(9,sizeof(struct Coordinate*));
-        for(int j = 0; j < 8; j++){
-            rebasedMask[j] = Coordinate_init_construct(currMask[j].x + coord->x,currMask[j].y + coord->y);
-            bool isInBoardX = rebasedMask[j]->x > 0 && rebasedMask[j]->x < currentState->board->width;
-            bool isInBoardY = rebasedMask[j]->y > 0 && rebasedMask[j]->y < currentState->board->height;
-            if(isInBoardX && isInBoardY){
-                if(currentState->board->cells[(rebasedMask[j]->x * currentState->board->height)+(rebasedMask[j]->y)] != BurntGround){
-                    legalMask[ptrArrLen((void**)(legalMask))] = Coordinate_init_copy(rebasedMask[j]);
-                }
+    return playableCoords;
+}
+
+struct Move** generatePieceMoves(struct Board* board,struct Coordinate* pos,bool isActive){
+    enum Cell cellType = board->cells[pos->x * board->height + pos->y];
+    if(cellType == Empty || cellType == BurntGround){return calloc(1,sizeof(struct Move**));}
+    
+    bool isKnightLike =  cellType == CirclesKnight || cellType == CrossesKnight;
+    if(isActive){
+        isKnightLike = !isKnightLike;
+    }
+    
+    struct Coordinate** pieceMask = calloc(9,sizeof(struct Coordinate*));
+    if(isKnightLike){
+        for(int i = 0; i<8; i++){pieceMask[ptrArrLen((void**)pieceMask)] = Coordinate_init_copy(&knightMaskCoords[i]);}
+    } else {
+        for(int i = 0; i<8; i++){pieceMask[ptrArrLen((void**)pieceMask)] = Coordinate_init_copy(&kingMaskCoords[i]);}
+    }
+    
+    struct Move** output = calloc(9,sizeof(struct Move*));
+    for(int i = 0; i<8; i++){output[i] = rebaseMove(pos,Move_init_construct(Coordinate_init_construct(0,0),pieceMask[i]));};
+
+    for(int i = 0; pieceMask[i] != NULL; i++){Coordinate_destroy(pieceMask[i]);}
+    free(pieceMask);
+
+    return output;
+}
+
+struct Move** generateAllMoves(struct GameState* state){
+    struct Coordinate** pPieces = playablePieces(state);
+    struct Move** generatedMoves = calloc(ptrArrLen((void**)pPieces)*8 + 1,sizeof(struct Move*));
+    for(int i = 0; pPieces[i] != NULL; i++){
+        bool isPieceActive = state->activePiece != NULL;
+        struct Move** movesForCurrPiece = generatePieceMoves(state->board,pPieces[i],isPieceActive);
+        for(int j = 0; movesForCurrPiece[j] != NULL; j++){
+            generatedMoves[ptrArrLen((void**)generatedMoves)] = movesForCurrPiece[j];
+        }
+        free(movesForCurrPiece);
+    }
+    return generatedMoves;
+}
+struct Move** filterMoves(struct Move** input,struct Board* board){
+    struct Move** output = calloc(ptrArrLen((void**)input), sizeof(struct Move*));
+    for(int i = 0; input[i] != NULL; i++){
+        struct Coordinate* endingCoords = input[i]->to;
+        if(endingCoords->x >= 0 && endingCoords->x < board->width && endingCoords->y >= 0 && endingCoords->y < board->height){
+            enum Cell cellType = board->cells[endingCoords->x * board->height + endingCoords->y];
+            if(cellType != BurntGround){
+                output[ptrArrLen((void**)output)] = Move_init_copy(input[i]);
             }
         }
-        for(int j = 0; j< ptrArrLen((void**)(legalMask));j++){
-            legalMoves[j] = Move_init_construct(coord,legalMask[j]);
-        }
-        
-        //Destroying the Coordinates from rebasedMask and legalMask
-        for(int j = 0; j<ptrArrLen((void**)rebasedMask); j++){Coordinate_destroy(rebasedMask[j]);}
-        for(int j = 0; j<ptrArrLen((void**)legalMask); j++){Coordinate_destroy(legalMask[j]);}
-        free(rebasedMask);
-        free(legalMask);
-        Coordinate_destroy(coord);
-    };
-    return legalMoves;
+    }
+    return output;
+}
+
+struct Move** possibleMoves(struct GameState* game){
+    struct Move** gendMoves = generateAllMoves(game);
+    struct Move** filteredMoves = filterMoves(gendMoves,game->board);
+    for(int i = 0; gendMoves[i] != NULL; i++){Move_destroy(gendMoves[i]);}
+    free(gendMoves);
+    return filteredMoves;
 }
 
 bool isStranded(struct Board* board, struct Coordinate* pos, bool isActivePiece){
-    enum Cell cellType = board->cells[pos->x * board->height + pos->y];
-    bool knightLike =  (cellType%2 == 1) != isActivePiece;
-    struct Coordinate* currMask = knightLike ? knightMaskCoords : kingMaskCoords;
-    struct Move** rebasedMoves = calloc(9,sizeof(struct Move*));
-    struct Move** legalMoves = calloc(9,sizeof(struct Move*));
-    for(int i = 0; i<8; i++){
-        struct Move* currMove = coordToMove(&currMask[i]);
-        struct Move* rebasedMove = rebaseMove(pos,currMove);
-        bool isInsideBoardX = rebasedMove->to->x >= 0 && rebasedMove->to->x < board->width;
-        bool isInsideBoardY = rebasedMove->to->y >= 0 && rebasedMove->to->y < board->height;
-        if(isInsideBoardX && isInsideBoardY){
-            int cellIndex = rebasedMove->to->x * board->height + rebasedMove->to->y;
-            bool isCellBurned = board->cells[cellIndex] == 5;
-            if(!isCellBurned){
-                legalMoves[ptrArrLen((void**)legalMoves)] = Move_init_copy(rebasedMove);
-            }
-        }
-        Move_destroy(rebasedMove);
-        Move_destroy(currMove);
-    }
-    return ptrArrLen((void**)possibleMoves) == 0;
+    struct Move** gendMoves = generatePieceMoves(board,pos,isActivePiece);
+    struct Move** filteredMoves = filterMoves(gendMoves, board);
+    for(int i = 0; gendMoves[i] != NULL; i++){Move_destroy(gendMoves[i]);}
+    free(gendMoves);
+    if(board->cells[pos->x * board->height + pos->y] != Empty){}
+    return filteredMoves[0] == NULL;
 }
 
 struct GameState* removeStranded(struct GameState* currGame){
@@ -110,6 +125,7 @@ struct GameState* removeStranded(struct GameState* currGame){
     for(int i = 0; i< currGame->board->width; i++){
         for(int j = 0; j<currGame->board->height; j++){
             struct Coordinate* currPos = Coordinate_init_construct(i,j);
+            int currPieceIndex = i*currGame->board->height + j;
             enum Cell currCell = currGame->board->cells[i * currGame->board->height + j];
             bool isActivePiece = false;
             if(newGame->activePiece != NULL){
@@ -117,8 +133,10 @@ struct GameState* removeStranded(struct GameState* currGame){
                     isActivePiece = true;
                 }
             }
-            if(isStranded(currGame->board,currPos,isActivePiece)){
-                newGame->board->cells[i * newGame->board->height + j] = BurntGround;
+            if(currGame->board->cells[currPieceIndex] != Empty){
+                if(isStranded(currGame->board,currPos,isActivePiece)){
+                    newGame->board->cells[i * newGame->board->height + j] = BurntGround;
+                }
             }
             Coordinate_destroy(currPos);
         }
@@ -128,15 +146,16 @@ struct GameState* removeStranded(struct GameState* currGame){
 
 struct GameState* movePiece(struct GameState* input, struct Move* currMove){
     struct GameState* newState = GameState_init_copy(input);
-    newState->board->cells[currMove->to->x * input->board->height + currMove->to->y] = newState->board->cells[currMove->from->x * input->board->height + currMove->from->y];
+    enum Cell movedPiece = newState->board->cells[currMove->from->x * input->board->height + currMove->from->y];
     newState->board->cells[currMove->from->x * input->board->height + currMove->from->y] = BurntGround;
+    newState->board->cells[currMove->to  ->x * input->board->height + currMove->to  ->y] = movedPiece;
     return newState;
 }
 
 struct GameState* transition(struct GameState* currState, struct Move* currMove){
     struct Move** posMoves = possibleMoves(currState);
     bool isValid = false;
-    for(int i = 0; i<ptrArrLen((void**)posMoves); i++){
+    for(int i = 0; posMoves[i] != NULL; i++){
         if( posMoves[i]->from   ->x == currMove->from->x   &&
             posMoves[i]->from   ->y == currMove->from->y   &&
             posMoves[i]->to     ->x == currMove->to->x     &&

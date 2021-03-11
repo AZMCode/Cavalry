@@ -62,7 +62,9 @@ struct Move* rebaseMove(struct Coordinate* newBase, struct Move* input);
 bool isMoveBlocked(struct Board* board,struct Move* move);
 struct Coordinate** deduplicateCoords(struct Coordinate** input,int inputLen);
 char* stringifyMove(struct Move* input);
+char* stringifyCoord(struct Coordinate* input);
 void printMovePtrArr(struct Move** input);
+void printCoordsPtrArr(struct Coordinate** input);
 char* stringifyBoard(struct Board* board);
 int ptrArrLen(void** ptrArr);
 #endif

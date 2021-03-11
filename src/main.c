@@ -6,23 +6,24 @@
 #include <mod.h>
 
 int main(){
-    struct GameState* game = GameState_init_construct(&defaultBoard, false, NULL);
     while(true){
-        char* printableString = stringifyBoard(game->board);
-        printf("%s\n",printableString);
-        free(printableString);
-        struct Move** posMoves = possibleMoves(game);
-        printMovePtrArr(posMoves);
-        int posMovesLength = ptrArrLen((void**)posMoves);
-        if(posMovesLength > 0){
-            struct GameState* newState = transition(game,posMoves[0]);
+        printf("%s","--- New Game ---\n");
+        struct GameState* game = GameState_init_construct(&defaultBoard, true, NULL);
+        while(possibleMoves(game)[0] != NULL){
+            char* boardStr = stringifyBoard(game->board);
+            printf("%s\n",boardStr);
+            free(boardStr);
+            
+            struct Move** posMoves = possibleMoves(game);
+            struct Move* chosenMove = posMoves[rand() % ptrArrLen((void**)posMoves)];
+        
+            struct GameState* newGame = transition(game,chosenMove);
             GameState_destroy(game);
-            game = newState;
-            for(int i=0; i< ptrArrLen((void**)posMoves);i++){Move_destroy(posMoves[i]);}
-        } else {
-            for(int i=0; i< ptrArrLen((void**)posMoves);i++){Move_destroy(posMoves[i]);}
-            break;
+            game = newGame;
+
+            for(int i = 0; posMoves[i] != NULL; i++){Move_destroy(posMoves[i]);}
+            free(posMoves);
         }
+        game->turn ? printf("%s","--- Circles Wins ---\n") : printf("%s","--- Crosses Wins ---\n");
     }
-    printf("Finished\n");
 }
